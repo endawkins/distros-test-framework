@@ -2,6 +2,7 @@ package testcase
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rancher/distros-test-framework/factory"
 	"github.com/rancher/distros-test-framework/shared"
@@ -40,6 +41,8 @@ func TestClusterReset() {
 		Expect(resetCmdErr.Error()).To(ContainSubstring("has been reset"))
 	}
 	shared.LogLevel("info", "cluster reset successful")
+
+	time.Sleep(120 * time.Second)
 
 	deleteDataDirectories(cluster)
 	shared.LogLevel("info", "data directories deleted")
