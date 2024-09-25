@@ -5,12 +5,13 @@ import (
 	"os"
 
 	"github.com/rancher/distros-test-framework/pkg/aws"
+	"github.com/rancher/distros-test-framework/pkg/customflag"
 	"github.com/rancher/distros-test-framework/shared"
 
 	. "github.com/onsi/gomega"
 )
 
-func TestClusterResetRestoreS3Snapshot(
+func TestClusterRestoreFromS3(
 	cluster *shared.Cluster,
 	applyWorkload,
 	deleteWorkload bool,
@@ -27,7 +28,7 @@ func TestClusterResetRestoreS3Snapshot(
 	s3Folder := os.Getenv("S3_FOLDER")
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	s3Region := cluster.AwsEc2.Region
+	s3Region := ""
 
 	takeS3Snapshot(
 		cluster,
@@ -66,7 +67,19 @@ func TestClusterResetRestoreS3Snapshot(
 	// 	secretAccessKey,
 	// 	clusterToken,
 	// )
+}
 
+func TestS3SnapshotSave(cluster *shared.Cluster, flags *customflag.FlagConfig) {
+	s3Config := shared.AwsS3Config{
+		AccessKey: os.Getenv("access_key"),
+		Region: os.Getenv("region"),
+		Bucket: flags.S3Flags.Bucket,
+		Folder: flags.S3Flags.Folder,
+	}
+	s3Client, err := aws.AddS3Client(s3Config)
+	Expect(err).NotTo(HaveOccurred(), "error creating s3 client: %s", err)
+
+	s3Client.GetObjects(s3Config)
 }
 
 // perform snapshot and list snapshot commands -- deploy workloads after snapshot [apply workload]
@@ -112,13 +125,12 @@ func stopInstances(
 func createNewServer(cluster *shared.Cluster) (externalServerIP []string) {
 
 	resourceName := os.Getenv("resource_name")
-	awsDependencies, err := aws.AddClient(cluster)
+	awsDependencies, err := aws.AddEC2Client(cluster)
 	Expect(err).NotTo(HaveOccurred(), "error adding aws nodes: %s", err)
 
 	// create server names.
 	var serverName []string
-
-	serverName = append(serverName, fmt.Sprintf("%s-server-fresh", resourceName))
+	serverName = append(serverName, resourceName+"-server1-new")
 
 	externalServerIp, _, _, createErr :=
 		awsDependencies.CreateInstances(serverName...)
