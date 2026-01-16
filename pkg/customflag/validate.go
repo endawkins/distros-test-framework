@@ -52,6 +52,8 @@ func ValidateTemplateFlags() {
 	case "canal":
 		validateCanalTest(testValues.ExpectedValues, testValues.ExpectedUpgrades, testValues.ExpectedChartsValues,
 			testValues.ExpectedChartsValueUpgrades)
+	case "thickmultus":
+		validateThickMultusTest(testValues.ExpectedValues, testValues.ExpectedUpgrades)
 	default:
 		log.Errorf("test tag not found")
 	}
@@ -276,6 +278,20 @@ func validateMultusTest(expectedValue, valuesUpgrade, expectedChartsValues, char
 	if chartsValueUpgrades != nil && len(chartsValueUpgrades) != chartsCmdCount {
 		log.Errorf("mismatched length commands: %d x expected charts values upgrade: %d",
 			chartsCmdCount, len(chartsValueUpgrades))
+		os.Exit(1)
+	}
+}
+
+func validateThickMultusTest(expectedValue, valuesUpgrade []string) {
+	cmdCount := 2
+	if len(expectedValue) != cmdCount {
+		log.Errorf("mismatched length commands: %d x expected values: %d", cmdCount, len(expectedValue))
+		os.Exit(1)
+	}
+
+	if valuesUpgrade != nil && len(valuesUpgrade) != cmdCount {
+		log.Errorf("mismatched length commands: %d x expected values upgrade: %d",
+			cmdCount, len(valuesUpgrade))
 		os.Exit(1)
 	}
 }

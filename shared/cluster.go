@@ -888,3 +888,61 @@ func CleanupPod(podName string) error {
 
 	return nil
 }
+
+func ManageManifestYaml(action string, manifests ...string) error {
+	if action != "cp" {
+		return ReturnLogError("invalid action: %s. Must be 'cp'", action)
+	}
+	resourceDir := BasePath() + "/manifests/"
+
+	files, readErr := os.ReadDir(resourceDir)
+	if readErr != nil {
+		return ReturnLogError("Unable to read resource manifest file for: %s\n with error:%w", resourceDir, readErr)
+	}
+
+	for _, manifest := range manifests {
+		if !fileExists(files, manifest) {
+			return ReturnLogError("manifest %s not found", manifest)
+		}
+
+		manifestErr := handleManifestYaml(action, resourceDir, manifest)
+		if manifestErr != nil {
+			return manifestErr
+		}
+	}
+
+	return nil
+}
+
+func handleManifestYaml(action, resourceDir, workload string) error {
+	filename := filepath.Join(resourceDir, workload)
+
+	switch action {
+	case "cp":
+		return copyManifestYaml(workload, filename)
+	default:
+		return ReturnLogError("invalid action: %s. Must be 'cp'", action)
+	}
+}
+
+func copyManifestYaml(manifest, filename string) error {
+	manifestsDir := " /var/lib/rancher/rke2/server/manifests/"
+	LogLevel("info", "Copying %s, to /var/lib/rancher/rke2/server/manifests/ directory", manifest)
+	cmd := "sudo cp " + filename + manifestsDir
+	out, err := RunCommandHost(cmd)
+	if err != nil || out == "" {
+		if strings.Contains(out, "Invalid value") {
+			return fmt.Errorf("failed to apply workload %s: %s", manifest, out)
+		}
+		return ReturnLogError("failed to run kubectl apply: %w", err)
+	}
+	LogLevel("info", "Manifest copied: %v", filename)
+	LogLevel("debug", "Manifest copy response: \n%v", out)
+
+	out, err = RunCommandHost("sudo ls -l /var/lib/rancher/rke2/server/manifests/")
+	if err != nil {
+		return ReturnLogError("failed to run ls -l: %w\n", err)
+	}
+
+	return nil
+}
