@@ -53,7 +53,8 @@ func ValidateTemplateFlags() {
 		validateCanalTest(testValues.ExpectedValues, testValues.ExpectedUpgrades, testValues.ExpectedChartsValues,
 			testValues.ExpectedChartsValueUpgrades)
 	case "thickmultus":
-		validateThickMultusTest(testValues.ExpectedValues, testValues.ExpectedUpgrades)
+		validateThickMultusTest(testValues.ExpectedValues, testValues.ExpectedUpgrades, testValues.ExpectedChartsValues,
+			testValues.ExpectedChartsValueUpgrades)
 	default:
 		log.Errorf("test tag not found")
 	}
@@ -131,7 +132,7 @@ func validateTestTagFromLocal() string {
 		os.Exit(1)
 	}
 
-	testTags := []string{"calico", "canal", "cilium", "flannel", "multus", "components", "versionbump"}
+	testTags := []string{"calico", "canal", "cilium", "flannel", "multus", "components", "versionbump", "thickmultus"}
 	if !slices.Contains(testTags, testTag) {
 		log.Errorf("test tag not found in: %s", testTag)
 		os.Exit(1)
@@ -282,8 +283,9 @@ func validateMultusTest(expectedValue, valuesUpgrade, expectedChartsValues, char
 	}
 }
 
-func validateThickMultusTest(expectedValue, valuesUpgrade []string) {
+func validateThickMultusTest(expectedValue, valuesUpgrade, expectedChartsValues, chartsValueUpgrades []string) {
 	cmdCount := 2
+	chartsCmdCount := 1
 	if len(expectedValue) != cmdCount {
 		log.Errorf("mismatched length commands: %d x expected values: %d", cmdCount, len(expectedValue))
 		os.Exit(1)
@@ -292,6 +294,17 @@ func validateThickMultusTest(expectedValue, valuesUpgrade []string) {
 	if valuesUpgrade != nil && len(valuesUpgrade) != cmdCount {
 		log.Errorf("mismatched length commands: %d x expected values upgrade: %d",
 			cmdCount, len(valuesUpgrade))
+		os.Exit(1)
+	}
+	if len(expectedChartsValues) != chartsCmdCount {
+		log.Errorf("mismatched length commands: %d x expected charts values: %d",
+			chartsCmdCount, len(expectedChartsValues))
+		os.Exit(1)
+	}
+
+	if chartsValueUpgrades != nil && len(chartsValueUpgrades) != chartsCmdCount {
+		log.Errorf("mismatched length commands: %d x expected charts values upgrade: %d",
+			chartsCmdCount, len(chartsValueUpgrades))
 		os.Exit(1)
 	}
 }

@@ -41,6 +41,20 @@ var _ = Describe("Multus + canal Version bump:", func() {
 		testcase.TestThickMultusWhereabouts(cluster)
 	})
 
+	It("Validate Node after Thick Multus", func() {
+		testcase.TestNodeStatus(
+			cluster,
+			assert.NodeAssertReadyStatus(),
+			nil)
+	})
+
+	It("Validate Pod after Thick Multus", func() {
+		testcase.TestPodStatus(
+			cluster,
+			assert.PodAssertRestart(),
+			assert.PodAssertReady())
+	})
+
 	// It("Test Bump version", func() {
 	// 	Template(TestTemplate{
 	// 		TestCombination: &RunCmd{
