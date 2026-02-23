@@ -152,9 +152,9 @@ func TestSelinuxSpcT(cluster *shared.Cluster) {
 // Call this function after the un-installation of the product.
 func TestUninstallPolicy(cluster *shared.Cluster, uninstall bool) {
 	semoduleCmd := "sudo semodule -l | grep " + cluster.Config.Product
-	serverCmd := "rpm -qa container-selinux rke2-server rke2-selinux; " + semoduleCmd
+	serverCmd := "rpm -qa container-selinux rke2-server rke2-selinux, " + semoduleCmd
 	if cluster.Config.Product == "k3s" {
-		serverCmd = "rpm -qa container-selinux k3s-selinux; " + semoduleCmd
+		serverCmd = "rpm -qa container-selinux k3s-selinux, " + semoduleCmd
 	}
 
 	for _, serverIP := range cluster.ServerIPs {
