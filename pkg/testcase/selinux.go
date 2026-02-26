@@ -92,12 +92,16 @@ func getContext(product, ip string) (cmdCtx, error) {
 	policyMapping := map[string]string{
 		"ID_LIKE='suse' VARIANT_ID='sle-micro'": "sle_micro",
 		"ID_LIKE='suse'":                        "micro_os",
+		"ID='sles'":                             "sles",
 		"ID_LIKE='coreos'":                      "coreos",
 		"VARIANT_ID='coreos'":                   "coreos",
 	}
 
 	for k, v := range policyMapping {
 		if strings.Contains(res, k) {
+			if v == "sles" {
+				break
+			}
 			return selectSelinuxPolicy(product, v), nil
 		}
 	}
@@ -111,9 +115,10 @@ func getContext(product, ip string) (cmdCtx, error) {
 	}
 
 	versionMapping := map[string]string{
-		"7": "centos7",
-		"8": "centos8",
-		"9": "centos9",
+		"7":  "centos7",
+		"8":  "centos8",
+		"9":  "centos9",
+		"16": "sles16",
 	}
 
 	if policy, ok := versionMapping[version]; ok {
