@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -143,13 +144,20 @@ func RunScp(c *Cluster, ip string, localPaths, remotePaths []string) error {
 		return ReturnLogError("the number of local paths and remote paths must be the same\n")
 	}
 
+	// AccessKey is bind-mounted into the container, so `chmod 400` on it fails
+	// with "Permission denied" sometimes.
+	keyPath, err := prepareScpKey(c.Aws.AccessKey)
+	if err != nil {
+		return ReturnLogError("failed to prepare scp key: %w", err)
+	}
+
 	for i, localPath := range localPaths {
 		remotePath := remotePaths[i]
 		scp := fmt.Sprintf(
 			"ssh-keyscan %[1]s >> /root/.ssh/known_hosts && "+
-				"chmod 400 %[2]s && scp -i %[2]s %[3]s %[4]s@%[1]s:%[5]s",
+				"scp -i %[2]s -o StrictHostKeyChecking=no %[3]s %[4]s@%[1]s:%[5]s",
 			ip,
-			c.Aws.AccessKey,
+			keyPath,
 			localPath,
 			c.Aws.AwsUser,
 			remotePath,
@@ -176,13 +184,65 @@ func RunScp(c *Cluster, ip string, localPaths, remotePaths []string) error {
 	return nil
 }
 
+var (
+	scpKeyOnce sync.Once
+	scpKeyPath string
+	scpKeyErr  error
+)
+
+// prepareScpKey copies the AccessKey to a writable path in the container and
+// chmods the copy to 0400.
+func prepareScpKey(src string) (string, error) {
+	scpKeyOnce.Do(func() {
+		dst := "/tmp/aws_key.pem"
+		data, readErr := os.ReadFile(src)
+		if readErr != nil {
+			scpKeyErr = fmt.Errorf("read key %s: %w", src, readErr)
+			return
+		}
+
+		if writeErr := os.WriteFile(dst, data, 0o400); writeErr != nil {
+			scpKeyErr = fmt.Errorf("write key %s: %w", dst, writeErr)
+			return
+		}
+
+		if chmodErr := os.Chmod(dst, 0o400); chmodErr != nil {
+			scpKeyErr = fmt.Errorf("chmod key %s: %w", dst, chmodErr)
+			return
+		}
+		scpKeyPath = dst
+	})
+
+	return scpKeyPath, scpKeyErr
+}
+
 // InstallHelm installs helm on the container.
 func InstallHelm() (res string, err error) {
-	// Install Helm from local tarball
-	cmd := fmt.Sprintf("tar -zxvf %v/bin/helm-v3.18.3-linux-amd64.tar.gz -C /tmp && "+
-		"cp /tmp/linux-amd64/helm /usr/local/bin/helm && "+
-		"chmod +x /usr/local/bin/helm && "+
-		"helm version", BasePath())
+	// get targeted architecture
+	arch := os.Getenv("arch")
+	if arch == "" {
+		arch = runtime.GOARCH
+	}
+
+	switch arch {
+	case "x86_64":
+		arch = "amd64"
+	case "amd64", "arm64":
+		// Supported as-is
+	default:
+		return "", ReturnLogError("unsupported architecture for Helm installation: %q", arch)
+	}
+
+	// install Helm from local tarball
+	localbin, err := getBinPath()
+	if err != nil {
+		return "", fmt.Errorf("unable to get binary path for helm install: %w", err)
+	}
+	cmd := fmt.Sprintf("mkdir -p %v && "+
+		"tar -zxvf %v/bin/helm-v*-linux-%v*.tar.gz -C /tmp && "+
+		"cp /tmp/linux-%v*/helm %v/helm && "+
+		"chmod +x %v/helm && "+
+		"%v/helm version", localbin, BasePath(), arch, arch, localbin, localbin, localbin)
 
 	return RunCommandHost(cmd)
 }
@@ -194,6 +254,53 @@ func CheckHelmRepo(name, url, version string) (string, error) {
 	searchRepo := fmt.Sprintf("helm search repo %s --devel -l | grep %s", name, version)
 
 	return RunCommandHost(addRepo, update, searchRepo)
+}
+
+// getBinPath determines the appropriate binary installation directory.
+// It returns the path string, or an error if the home directory cannot be resolved
+// or the target directory cannot be prepared.
+func getBinPath() (string, error) {
+	// Look up the current user's home directory (equivalent to ~)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", ReturnLogError("unable to get user home dir: %w", err)
+	}
+
+	// Default location for non-root user
+	binPath := filepath.Join(homeDir, "bin")
+
+	// /usr/local/bin is only accessible if we are root (UID == 0)
+	// Note: os.Getuid() returns 0 for root on Linux/macOS, and -1 on Windows.
+	if os.Getuid() == 0 {
+		rootPath := "/usr/local/bin"
+
+		// Default location for root user; fall back to ~/bin if it sits on a
+		// read-only filesystem. A direct write test covers that.
+		// Ignore error matching the '2>/dev/null' behavior from Bash
+		_ = os.MkdirAll(rootPath, 0o755)
+
+		// Attempt a write test (similar to `touch`) using a unique temp file to avoid clobbering existing files.
+		file, err := os.CreateTemp(rootPath, ".write_test_*")
+		if err != nil {
+			// If creation fails (e.g., read-only filesystem), fall back to ~/bin
+			binPath = filepath.Join(homeDir, "bin")
+		} else {
+			testFile := file.Name()
+			if fcErr := file.Close(); fcErr != nil {
+				return "", ReturnLogError("unable to close file: %w", fcErr)
+			}
+			_ = os.Remove(testFile)
+			binPath = rootPath
+		}
+	}
+
+	// To be sure that the path is available
+	err = os.MkdirAll(binPath, 0o755)
+	if err != nil {
+		return "", ReturnLogError("unable to mkdir %q: %w", binPath, err)
+	}
+
+	return binPath, nil
 }
 
 func publicKey(path string) (ssh.AuthMethod, error) {
@@ -328,6 +435,9 @@ func formatLogArgs(format string, args ...interface{}) error {
 		return fmt.Errorf("%s", format)
 	}
 	if e, ok := args[0].(error); ok {
+		if strings.Contains(format, "%w") {
+			return fmt.Errorf(format, args...)
+		}
 		if len(args) > 1 {
 			return fmt.Errorf(format, args[1:]...)
 		}
@@ -349,13 +459,15 @@ func fileExists(files []os.DirEntry, workload string) bool {
 	return false
 }
 
-func FindPath(name, ip string) (string, error) {
-	if ip == "" {
-		return "", errors.New("ip should not be empty")
+func getCommonPaths(ip string) (string, error) {
+	// get home directory on node
+	homedir, err := RunCommandOnNode(`echo "$HOME"`, ip)
+	if err != nil {
+		return "", ReturnLogError("failed to get home dir: %w", err)
 	}
-
-	if name == "" {
-		return "", errors.New("name should not be empty")
+	homedir = strings.TrimSpace(homedir)
+	if homedir == "" {
+		return "", ReturnLogError("failed to get home dir: HOME is empty")
 	}
 
 	// adding common paths to the environment variable PATH since in some os's not all paths are available.
@@ -368,11 +480,30 @@ func FindPath(name, ip string) (string, error) {
 		"/var/rancher/k3s/bin:" +
 		"/opt/k3s/bin:" +
 		"/usr/local/bin:" +
-		"/usr/bin:"
+		"/usr/bin:" +
+		homedir + "/bin:"
+
+	return commonPaths, nil
+}
+
+func FindPath(name, ip string) (string, error) {
+	if ip == "" {
+		return "", errors.New("ip should not be empty")
+	}
+
+	if name == "" {
+		return "", errors.New("name should not be empty")
+	}
+
+	// get needed common paths
+	commonPaths, err := getCommonPaths(ip)
+	if err != nil {
+		return "", fmt.Errorf("failed to get common paths: %w", err)
+	}
 
 	// adding the common paths to the PATH environment variable by sourcing it from a file.
 	envFile := "find_path_env.sh"
-	err := ExportEnvProfileNode([]string{ip}, map[string]string{"PATH": commonPaths}, envFile)
+	err = ExportEnvProfileNode([]string{ip}, map[string]string{"PATH": commonPaths}, envFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to create environment file: %w", err)
 	}

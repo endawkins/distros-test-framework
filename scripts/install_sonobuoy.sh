@@ -13,6 +13,31 @@ max_retries=5
 retry_delay=11
 # adopt golang error handling in bash check variables are passed in appropriately - if not return appropriate error message
 
+get_binpath(){
+  # Default location for non-root user
+  binpath=~/bin
+
+  # /usr/local/bin is only accessible if we are root
+  if (( $(id -u) == 0 )); then
+    # Default location for root user; fall back to ~/bin if it sits on a
+    # read-only filesystem (e.g. btrfs/LVM setups). A direct write test
+    # covers that without depending on findmnt, which minimal container
+    # images do not ship.
+    binpath=/usr/local/bin
+    mkdir -p "${binpath}" 2>/dev/null
+    if ! touch "${binpath}/.write_test" 2>/dev/null; then
+      binpath=~/bin
+    else
+      rm -f "${binpath}/.write_test"
+    fi
+  fi
+
+  # To be sure that the path is available (it does not hurt to do it)
+  mkdir -p ${binpath}
+
+  echo ${binpath}
+}
+
 download_retry(){
   i=1
 
@@ -61,8 +86,9 @@ installation(){
     fi
     tar -xvf sonobuoy.tar.gz
     wait
-    mv sonobuoy /usr/local/bin/sonobuoy
-    chmod +x /usr/local/bin/sonobuoy
+    binpath=$(get_binpath) || { echo "${binpath}"; exit 1; }
+    mv sonobuoy "${binpath}/sonobuoy" || { echo "ERROR: failed to move sonobuoy to ${binpath}"; exit 1; }
+    chmod +x "${binpath}/sonobuoy"
     rm -f sonobuoy_checksums.txt
 }
 
@@ -70,7 +96,7 @@ deletion(){
     echo "Deleting sonobuoy installer"
     rm -rf my-sonobuoy-plugins
     rm -rf sonobuoy_*
-    rm -rf /usr/local/bin/sonobuoy
+    rm -rf $(get_binpath)/sonobuoy
 }
 
 if [ "$action" == "install" ];
