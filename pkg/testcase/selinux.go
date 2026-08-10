@@ -115,9 +115,9 @@ func getContext(product, ip string) (cmdCtx, error) {
 	}
 
 	versionMapping := map[string]string{
-		"7":  "centos7",
 		"8":  "centos8",
 		"9":  "centos9",
+		"10": "centos10",
 		"16": "sles16",
 	}
 
@@ -329,6 +329,33 @@ var conf = []configuration{
 	},
 	{
 		distroName: "rke2_centos9",
+		cmdCtx: cmdCtx{
+			cmdPrefix + " " + systemD + "/rke2*":                                                          ctxUnitFile,
+			cmdPrefix + " " + "/lib/systemd/system/rke2*":                                                 ctxUnitFile,
+			cmdPrefix + " " + "/usr/local/lib/systemd/system/rke2*":                                       ctxUnitFile,
+			cmdPrefix + " " + usrBin + "/rke2":                                                            ctxExec,
+			cmdPrefix + " " + usrLocal + "/rke2":                                                          ctxExec,
+			cmdPrefix + " " + "/opt/cni " + ignoreDir:                                                     ctxFile,
+			cmdPrefix + " " + "/opt/cni/* " + ignoreDir:                                                   ctxFile,
+			cmdPrefix + " " + rke2 + " " + ignoreDir:                                                      ctxVarLib,
+			cmdPrefix + " " + rke2 + "/* " + ignoreDir:                                                    ctxVarLib,
+			cmdPrefix + " " + rke2 + "/data " + ignoreDir:                                                 ctxExec,
+			cmdPrefix + " " + rke2 + "/data/* " + ignoreDir:                                               ctxExec,
+			cmdPrefix + " " + rke2 + "/data/*/charts " + ignoreDir + " " + grepFilter:                     ctxConfig,
+			cmdPrefix + " " + rke2 + "/data/*/charts/* " + ignoreDir + " " + grepFilter:                   ctxConfig,
+			cmdPrefix + " " + rke2 + "/agent/containerd/*/snapshots " + ignoreDir + " " + grepFilter:      ctxFile,
+			cmdPrefix + " " + rke2 + "/agent/containerd/*/snapshots/ " + ignoreDir + " " + grepFilter:     ctxFile,
+			cmdPrefix + " " + rke2 + "/agent/containerd/*/snapshots/*/.* " + ignoreDir + " " + grepFilter: ctxNone,
+			cmdPrefix + " " + rke2 + "/agent/containerd/*/sandboxes " + ignoreDir + " " + grepFilter:      ctxRoFile,
+			cmdPrefix + " " + rke2 + "/agent/containerd/*/sandboxes/* " + ignoreDir + " " + grepFilter:    ctxRoFile,
+			cmdPrefix + " " + rke2 + "/server/logs " + ignoreDir:                                          ctxLog,
+			cmdPrefix + " " + rke2 + "/server/logs/* " + ignoreDir:                                        ctxLog,
+			cmdPrefix + " " + rke2 + "/server/tls " + ignoreDir:                                           ctxTLS,
+			cmdPrefix + " " + rke2 + "/server/tls/* " + ignoreDir:                                         ctxTLS,
+		},
+	},
+		{
+		distroName: "rke2_centos10",
 		cmdCtx: cmdCtx{
 			cmdPrefix + " " + systemD + "/rke2*":                                                          ctxUnitFile,
 			cmdPrefix + " " + "/lib/systemd/system/rke2*":                                                 ctxUnitFile,
