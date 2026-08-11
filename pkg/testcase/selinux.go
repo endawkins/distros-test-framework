@@ -89,21 +89,25 @@ func getContext(product, ip string) (cmdCtx, error) {
 	}
 
 	fmt.Println("OS Release: \n", res)
-	policyMapping := map[string]string{
-		"ID_LIKE='suse' VARIANT_ID='sle-micro'": "sle_micro",
-		"ID='sl-micro'":                         "sle_micro",
-		"ID_LIKE='suse'":                        "micro_os",
-		"ID='sles'":                             "sles",
-		"ID_LIKE='coreos'":                      "coreos",
-		"VARIANT_ID='coreos'":                   "coreos",
+	normalizedOSRelease := strings.ReplaceAll(res, "\"", "'")
+	policyMapping := []struct {
+		pattern string
+		policy  string
+	}{
+		{pattern: "ID='sl-micro'", policy: "sle_micro"},
+		{pattern: "ID_LIKE='suse' VARIANT_ID='sle-micro'", policy: "sle_micro"},
+		{pattern: "ID='sles'", policy: "sles"},
+		{pattern: "ID_LIKE='coreos'", policy: "coreos"},
+		{pattern: "VARIANT_ID='coreos'", policy: "coreos"},
+		{pattern: "ID_LIKE='suse'", policy: "micro_os"},
 	}
 
-	for k, v := range policyMapping {
-		if strings.Contains(res, k) {
-			if v == "sles" {
+	for _, mapping := range policyMapping {
+		if strings.Contains(normalizedOSRelease, mapping.pattern) {
+			if mapping.policy == "sles" {
 				break
 			}
-			return selectSelinuxPolicy(product, v), nil
+			return selectSelinuxPolicy(product, mapping.policy), nil
 		}
 	}
 
