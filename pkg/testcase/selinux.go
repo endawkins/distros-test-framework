@@ -91,6 +91,7 @@ func getContext(product, ip string) (cmdCtx, error) {
 	fmt.Println("OS Release: \n", res)
 	policyMapping := map[string]string{
 		"ID_LIKE='suse' VARIANT_ID='sle-micro'": "sle_micro",
+		"ID='sl-micro'":                         "sle_micro",
 		"ID_LIKE='suse'":                        "micro_os",
 		"ID='sles'":                             "sles",
 		"ID_LIKE='coreos'":                      "coreos",
@@ -347,7 +348,7 @@ var conf = []configuration{
 			cmdPrefix + " " + rke2 + "/server/tls/* " + ignoreDir:                                         ctxTLS,
 		},
 	},
-		{
+	{
 		distroName: "rke2_centos10",
 		cmdCtx: cmdCtx{
 			cmdPrefix + " " + systemD + "/rke2*":                                                          ctxUnitFile,
