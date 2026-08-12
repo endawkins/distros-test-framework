@@ -6,6 +6,7 @@ import (
 	"github.com/rancher/distros-test-framework/pkg/assert"
 	"github.com/rancher/distros-test-framework/pkg/customflag"
 	"github.com/rancher/distros-test-framework/pkg/testcase"
+	"github.com/rancher/distros-test-framework/shared"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -80,6 +81,8 @@ var _ = Describe("Test:", func() {
 	It("Verifies node CPU usage does not exceed 80% before reboot", func() {
 		testcase.TestNodeCPUThreshold(80, true, false)
 	})
+
+	shared.LogLevel("info", "Running selinux tests post validation")
 
 	if customflag.ServiceFlag.SelinuxTest {
 		It("Validate selinux is enabled", func() {

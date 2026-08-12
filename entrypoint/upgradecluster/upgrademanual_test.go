@@ -128,7 +128,9 @@ var _ = Describe("Test:", func() {
 			testcase.TestIngressRoute(cluster, false, true, "traefik.io/v1alpha1")
 		})
 	}
-
+	
+	shared.LogLevel("info", "Running selinux tests post upgrade")
+	
 	if customflag.ServiceFlag.SelinuxTest {
 		It("Validate selinux is enabled", func() {
 			testcase.TestSelinuxEnabled(cluster)
