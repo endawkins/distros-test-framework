@@ -82,9 +82,9 @@ var _ = Describe("Upgrade Node Replacement Test:", Ordered, func() {
 		})
 	}
 
-		shared.LogLevel("info", "Running selinux tests post upgrade")
-
 	if customflag.ServiceFlag.SelinuxTest {
+		shared.LogLevel("info", "Running selinux tests post upgrade")
+		
 		It("Validate selinux is enabled", func() {
 			testcase.TestSelinuxEnabled(cluster)
 		})

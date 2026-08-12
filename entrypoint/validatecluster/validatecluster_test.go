@@ -82,9 +82,9 @@ var _ = Describe("Test:", func() {
 		testcase.TestNodeCPUThreshold(80, true, false)
 	})
 
-	shared.LogLevel("info", "Running selinux tests post validation")
-
 	if customflag.ServiceFlag.SelinuxTest {
+		shared.LogLevel("info", "Running selinux tests post validation")
+
 		It("Validate selinux is enabled", func() {
 			testcase.TestSelinuxEnabled(cluster)
 		})
