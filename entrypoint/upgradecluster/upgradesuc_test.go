@@ -135,7 +135,7 @@ var _ = Describe("SUC Upgrade Tests:", func() {
 			testcase.TestIngressRoute(cluster, false, true, "traefik.io/v1alpha1")
 		})
 	}
-		
+
 	if customflag.ServiceFlag.SelinuxTest {
 		shared.LogLevel("info", "Running selinux tests post upgrade")
 
