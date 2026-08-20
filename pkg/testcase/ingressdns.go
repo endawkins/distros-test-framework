@@ -59,7 +59,7 @@ func TestDNSAccess(applyWorkload, deleteWorkload bool) {
 
 	execDNSUtils := "kubectl exec -n dnsutils -t dnsutils --kubeconfig="
 	err = assert.CheckComponentCmdHost(
-		execDNSUtils+shared.KubeConfigFile+" -- nslookup kubernetes.default",
+		execDNSUtils+shared.KubeConfigFile+" -- dig kubernetes.default.svc.cluster.local +search +noall +answer",
 		nslookup,
 	)
 	Expect(err).NotTo(HaveOccurred(), err)

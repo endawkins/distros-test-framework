@@ -155,16 +155,13 @@ resource "aws_instance" "master" {
     command = "echo ${var.create_eip ? aws_eip.master_with_eip[0].public_ip : aws_instance.master.public_ip} >/tmp/${var.resource_name}_master_ip"
   }
   provisioner "local-exec" {
-    command = "ssh-keyscan ${aws_instance.master.public_ip} > /root/.ssh/known_hosts"
+    command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/nodetoken /tmp/${var.resource_name}_nodetoken"
   }
   provisioner "local-exec" {
-    command = "scp -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/nodetoken /tmp/${var.resource_name}_nodetoken"
+    command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/config /tmp/${var.resource_name}_config"
   }
   provisioner "local-exec" {
-    command = "scp -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/config /tmp/${var.resource_name}_config"
-  }
-  provisioner "local-exec" {
-    command = "scp -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/joinflags /tmp/${var.resource_name}_joinflags"
+    command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/joinflags /tmp/${var.resource_name}_joinflags"
   }
 }
 
@@ -526,10 +523,7 @@ resource "null_resource" "update_kubeconfig" {
   depends_on = [aws_instance.master, aws_instance.master2-ha]
 
   provisioner "local-exec" {
-    command = "ssh-keyscan ${count.index == 0 ? aws_instance.master.public_ip : aws_instance.master2-ha[count.index - 1].public_ip} >> /root/.ssh/known_hosts"
-  }
-  provisioner "local-exec" {
-    command    = "scp -i ${var.access_key} ${var.aws_user}@${count.index == 0 ? aws_instance.master.public_ip : aws_instance.master2-ha[count.index - 1].public_ip}:/var/tmp/.control-plane /tmp/${var.resource_name}_control_plane_${count.index}"
+    command    = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -i ${var.access_key} ${var.aws_user}@${count.index == 0 ? aws_instance.master.public_ip : aws_instance.master2-ha[count.index - 1].public_ip}:/var/tmp/.control-plane /tmp/${var.resource_name}_control_plane_${count.index}"
     on_failure = continue
   }
   provisioner "local-exec" {

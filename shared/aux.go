@@ -154,8 +154,7 @@ func RunScp(c *Cluster, ip string, localPaths, remotePaths []string) error {
 	for i, localPath := range localPaths {
 		remotePath := remotePaths[i]
 		scp := fmt.Sprintf(
-			"ssh-keyscan %[1]s >> /root/.ssh/known_hosts && "+
-				"scp -i %[2]s -o StrictHostKeyChecking=no %[3]s %[4]s@%[1]s:%[5]s",
+			"scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -i %[2]s %[3]s %[4]s@%[1]s:%[5]s",
 			ip,
 			keyPath,
 			localPath,
