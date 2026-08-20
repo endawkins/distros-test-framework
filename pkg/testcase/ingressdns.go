@@ -57,9 +57,9 @@ func TestDNSAccess(applyWorkload, deleteWorkload bool) {
 	err := assert.ValidateOnHost(getPodDnsUtils+shared.KubeConfigFile, statusRunning)
 	Expect(err).NotTo(HaveOccurred(), err)
 
-	execDNSUtils := "kubectl exec -n dnsutils -t dnsutils --kubeconfig="
+	execDNSUtils := "kubectl exec -n dnsutils dnsutils --kubeconfig="
 	err = assert.CheckComponentCmdHost(
-		execDNSUtils+shared.KubeConfigFile+" -- dig kubernetes.default.svc.cluster.local +search +noall +answer",
+		execDNSUtils+shared.KubeConfigFile+" -- sh -c 'dig kubernetes.default.svc.cluster.local +search +noall +answer 2>/dev/null'",
 		nslookup,
 	)
 	Expect(err).NotTo(HaveOccurred(), err)
