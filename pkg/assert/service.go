@@ -3,6 +3,7 @@ package assert
 import (
 	"net"
 	"strings"
+	"time"
 
 	"github.com/rancher/distros-test-framework/shared"
 
@@ -13,7 +14,7 @@ import (
 func ValidateClusterIPsBySVC(svc string, expected []string) {
 	cmd := "kubectl get svc " + svc +
 		` -o jsonpath='{.spec.clusterIPs[*]}' --kubeconfig=` + shared.KubeConfigFile
-	res, _ := shared.RunCommandHost(cmd)
+	res, _ := shared.RunCommandHostWithTimeout(30*time.Second, cmd)
 	clusterIPs := strings.Split(res, " ")
 	Expect(len(clusterIPs)).ShouldNot(BeZero())
 	Expect(len(expected)).ShouldNot(BeZero())
