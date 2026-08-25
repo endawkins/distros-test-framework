@@ -103,7 +103,7 @@ func runAssertion(
 // Need to send kubeconfig file.
 func ValidateOnHost(args ...string) error {
 	exec := func(cmd string) (string, error) {
-		return shared.RunCommandHostWithTimeout(30*time.Second, cmd)
+		return shared.RunCommandHost(cmd)
 	}
 	return validate(exec, args...)
 }
