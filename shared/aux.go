@@ -2,7 +2,6 @@ package shared
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -39,43 +38,6 @@ func RunCommandHost(cmds ...string) (string, error) {
 		c.Stderr = &errOut
 
 		err := c.Run()
-		if err != nil {
-			LogLevel("error", "Command '%s' failed with error: %v\n %v", cmd, err, c.Stderr.(*bytes.Buffer).String())
-			return c.Stderr.(*bytes.Buffer).String(), err
-		}
-	}
-
-	return output.String(), nil
-}
-
-// RunCommandHostWithTimeout executes one or more host commands with a timeout for each command.
-func RunCommandHostWithTimeout(timeout time.Duration, cmds ...string) (string, error) {
-	if timeout <= 0 {
-		return "", ReturnLogError("timeout should be greater than zero")
-	}
-	if cmds == nil {
-		return "", ReturnLogError("should send at least one command")
-	}
-
-	var output, errOut bytes.Buffer
-	for _, cmd := range cmds {
-		if cmd == "" {
-			return "", ReturnLogError("cmd should not be empty")
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		c := exec.CommandContext(ctx, "bash", "-c", cmd)
-		c.Stdout = &output
-		c.Stderr = &errOut
-
-		err := c.Run()
-		cancel()
-
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			LogLevel("error", "Command '%s' timed out after %s", cmd, timeout)
-			return c.Stderr.(*bytes.Buffer).String(), fmt.Errorf("command timed out after %s: %s", timeout, cmd)
-		}
-
 		if err != nil {
 			LogLevel("error", "Command '%s' failed with error: %v\n %v", cmd, err, c.Stderr.(*bytes.Buffer).String())
 			return c.Stderr.(*bytes.Buffer).String(), err

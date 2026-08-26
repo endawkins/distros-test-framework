@@ -13,7 +13,7 @@ import (
 
 const (
 	statusRunning = "Running"
-	dnsLookupOK   = "DNS_OK"
+	nslookup      = "kubernetes.default.svc.cluster.local"
 )
 
 func TestIngress(applyWorkload, deleteWorkload bool) {
@@ -57,10 +57,10 @@ func TestDNSAccess(applyWorkload, deleteWorkload bool) {
 	err := assert.ValidateOnHost(getPodDnsUtils+shared.KubeConfigFile, statusRunning)
 	Expect(err).NotTo(HaveOccurred(), err)
 
-	execDNSUtils := "kubectl exec --request-timeout=20s -n dnsutils dnsutils --kubeconfig="
+	execDNSUtils := "kubectl exec -n dnsutils dnsutils --kubeconfig="
 	err = assert.CheckComponentCmdHost(
-		execDNSUtils+shared.KubeConfigFile+" -- sh -c 'dig +short kubernetes.default.svc.cluster.local | grep -E . >/dev/null && echo DNS_OK'",
-		dnsLookupOK,
+		execDNSUtils+shared.KubeConfigFile+" -- sh -c 'dig kubernetes.default.svc.cluster.local +search +noall +answer 2>/dev/null'",
+		nslookup,
 	)
 	Expect(err).NotTo(HaveOccurred(), err)
 

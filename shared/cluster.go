@@ -97,19 +97,18 @@ func deleteWorkload(workload, filename string) error {
 	LogLevel("info", "Removing %s", workload)
 
 	cmd := "kubectl delete -f " + filename + " --kubeconfig=" + KubeConfigFile
-	_, err := RunCommandHostWithTimeout(2*time.Minute, cmd)
+	_, err := RunCommandHost(cmd)
 	if err != nil {
 		return err
 	}
 
 	timeout := time.After(30 * time.Second)
 	tick := time.NewTicker(2 * time.Second)
-	defer tick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
-			res, err := RunCommandHostWithTimeout(30*time.Second, "kubectl get all -A "+" --kubeconfig="+KubeConfigFile)
+			res, err := RunCommandHost("kubectl get all -A " + " --kubeconfig=" + KubeConfigFile)
 			if err != nil {
 				return ReturnLogError("failed to run kubectl get all: %w\n", err)
 			}
