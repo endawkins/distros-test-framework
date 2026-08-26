@@ -171,7 +171,7 @@ func KubectlCommand(cluster *Cluster, destination, action, source string, args .
 }
 
 func kubectlCmdOnHost(cmd string) (string, error) {
-	res, err := RunCommandHostWithTimeout(30*time.Second, cmd)
+	res, err := RunCommandHost(cmd)
 	if err != nil {
 		return "", ReturnLogError("failed to run kubectl command: %w\n", err)
 	}

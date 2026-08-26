@@ -3,7 +3,6 @@ package assert
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/rancher/distros-test-framework/shared"
 
@@ -20,7 +19,7 @@ func CheckComponentCmdHost(cmd string, asserts ...string) error {
 		return fmt.Errorf("cmd: %s should not be sent empty", cmd)
 	}
 	Eventually(func() error {
-		res, err := shared.RunCommandHostWithTimeout(30*time.Second, cmd)
+		res, err := shared.RunCommandHost(cmd)
 		cleanRes := shared.CleanString(res)
 
 		Expect(err).ToNot(HaveOccurred())
