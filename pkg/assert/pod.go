@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/rancher/distros-test-framework/shared"
 
@@ -83,7 +84,7 @@ func ValidatePodIPsByLabel(label string, expected []string) {
 		` -o jsonpath='{range .items[*]}{.status.podIPs[*].ip}{" "}{end}'` +
 		" --kubeconfig=" + shared.KubeConfigFile
 	Eventually(func() error {
-		res, _ := shared.RunCommandHost(cmd)
+		res, _ := shared.RunCommandHostWithTimeout(30*time.Second, cmd)
 		ips := strings.Split(res, " ")
 		Expect(len(ips)).ShouldNot(BeZero())
 		Expect(len(expected)).ShouldNot(BeZero())
