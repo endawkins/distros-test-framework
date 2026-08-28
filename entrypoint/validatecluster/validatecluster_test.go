@@ -6,6 +6,7 @@ import (
 	"github.com/rancher/distros-test-framework/pkg/assert"
 	"github.com/rancher/distros-test-framework/pkg/customflag"
 	"github.com/rancher/distros-test-framework/pkg/testcase"
+	"github.com/rancher/distros-test-framework/shared"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -82,6 +83,8 @@ var _ = Describe("Test:", func() {
 	})
 
 	if customflag.ServiceFlag.SelinuxTest {
+		shared.LogLevel("info", "Running selinux tests post validation")
+
 		It("Validate selinux is enabled", func() {
 			testcase.TestSelinuxEnabled(cluster)
 		})
