@@ -153,17 +153,10 @@ func RunScp(c *Cluster, ip string, localPaths, remotePaths []string) error {
 
 	for i, localPath := range localPaths {
 		remotePath := remotePaths[i]
-		scp := fmt.Sprintf(
-			"scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -i %[2]s %[3]s %[4]s@%[1]s:%[5]s",
-			ip,
-			keyPath,
-			localPath,
-			c.Aws.AwsUser,
-			remotePath,
-		)
+		args := scpArgs(keyPath, localPath, c.Aws.AwsUser, ip, remotePath)
 
-		LogLevel("debug", "Running scp command: %s\n", scp)
-		res, cmdErr := RunCommandHost(scp)
+		LogLevel("debug", "Running scp with args: %v\n", args)
+		res, cmdErr := runHostArgs("scp", args...)
 		if res != "" {
 			LogLevel("warn", "SCP output: %s\n", res)
 		}
@@ -181,6 +174,42 @@ func RunScp(c *Cluster, ip string, localPaths, remotePaths []string) error {
 	}
 
 	return nil
+}
+
+// scpArgs builds the scp argv. Arguments stay separated (no shell), so paths
+// with spaces or metacharacters cannot break out of the command.
+func scpArgs(keyPath, localPath, user, ip, remotePath string) []string {
+	return []string{
+		"-i", keyPath,
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "ConnectTimeout=15",
+		"-o", "BatchMode=yes",
+		"-o", "LogLevel=ERROR",
+		"--",
+		localPath,
+		user + "@" + ip + ":" + remotePath,
+	}
+}
+
+// runHostArgs executes a single binary with separated arguments; no shell is
+// involved, so argument values can never be interpreted as shell syntax.
+func runHostArgs(name string, args ...string) (string, error) {
+	if name == "" {
+		return "", ReturnLogError("binary name should not be empty")
+	}
+
+	var output, errOut bytes.Buffer
+	c := exec.Command(name, args...)
+	c.Stdout = &output
+	c.Stderr = &errOut
+
+	if err := c.Run(); err != nil {
+		LogLevel("error", "Command '%s %v' failed with error: %v\n %v", name, args, err, errOut.String())
+		return errOut.String(), err
+	}
+
+	return output.String(), nil
 }
 
 var (
